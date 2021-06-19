@@ -21,11 +21,11 @@ function displayMessage(message) {
         <i class="fas fa-user"></i>
         <div>
           <span class="username">${message.username}
-            <time>20:12 PM</time>
+            <time>${message.date.toDate().toLocaleString()}</time>
           </span>
           <br>
           <span class="message-text">
-            ${message.message}
+            ${(message.message)}
           </span>
         </div>
         <div class="message-edit-buttons">
