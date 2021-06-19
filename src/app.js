@@ -12,12 +12,11 @@ const db = firedb.firestore();
 async function sendMessage(data) {
   const res = await db.collection('messages').add(data);
   document.querySelector('#message').value = '';
-  console.log(res);
 }
 
-function displayMessage(message) {
+function displayMessage(message, id) {
   const messageDOM = `
-      <div class="message">
+      <div class="message" data-id="${id}">
         <i class="fas fa-user"></i>
         <div>
           <span class="username">${message.username}
@@ -40,6 +39,21 @@ function displayMessage(message) {
     block: 'end'
   });
 
+  console.log(id);
+  document.querySelector(`[data-id="${id}"] .fa-trash-alt`).addEventListener('click', () => {
+
+    deleteMessage(id);
+    removeMessage(id);
+  });
+
+}
+
+function removeMessage(id) {
+  document.querySelector(`[data-id="${id}"]`).remove();
+}
+
+function deleteMessage(id) {
+  db.collection("messages").doc(id).delete();
 }
 
 function createMessage() {
@@ -52,12 +66,13 @@ function createMessage() {
 }
 
 
-async function displayAllMessages() {
-  const query = await db.collection('messages').orderBy('date', 'asc').get();
-  query.forEach((doc) => {
-    displayMessage(doc.data());
-  });
-}
+// async function displayAllMessages() {
+//   const query = await db.collection('messages').orderBy('date', 'asc').get();
+//   console.log(query);
+//   query.forEach((doc) => {
+//     displayMessage(doc.data());
+//   });
+// }
 
 function handleMessage() {
   const message = createMessage();
@@ -85,15 +100,16 @@ document.addEventListener('keyup', (event) => {
 // listen for changes in the database
 db.collection('messages').orderBy('date', 'asc')
   .onSnapshot((snapshot) => {
+
     snapshot.docChanges().forEach((change) => {
       if (change.type === 'added') {
-        displayMessage(change.doc.data());
+        displayMessage(change.doc.data(), change.doc.id);
       }
       if (change.type === 'modified') {
-        console.log('Modified message: ', change.doc.data());
+        displayMessage(change.doc.data(), change.doc.id);
       }
       if (change.type === 'removed') {
-        console.log('Removed message: ', change.doc.data());
+        removeMessage(change.doc.id);
       }
     });
   });
