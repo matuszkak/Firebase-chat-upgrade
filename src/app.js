@@ -1,5 +1,6 @@
 import './index.html';
 import './scss/style.scss';
+// import './scss/edit-message-popup.scss';
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 import config from './db_config.js';
@@ -39,13 +40,17 @@ function displayMessage(message, id) {
     block: 'end'
   });
 
-  console.log(id);
-  document.querySelector(`[data-id="${id}"] .fa-trash-alt`).addEventListener('click', () => {
 
+  console.log(id);
+
+  document.querySelector(`[data-id="${id}"] .fa-trash-alt`).addEventListener('click', () => {
     deleteMessage(id);
     removeMessage(id);
   });
 
+  document.querySelector(`[data-id="${id}"] .fa-pen`).addEventListener('click', () => {
+    displayEditMessage(id)
+  });
 }
 
 function removeMessage(id) {
@@ -56,6 +61,42 @@ function deleteMessage(id) {
   db.collection("messages").doc(id).delete();
 }
 
+function displayEditMessage(id) {
+  const markup = /*html*/`
+  <div class="popup-container" id="popup">
+    <div class="edit-message" id="edit-message" data-id="${id}">
+      <div id="close-popup" class="button">
+        Close <i class="fa fa-window-close" aria-hidden="true"></i>
+      </div>
+      <textarea id="edit" name="" cols="30" rows="10">${document.querySelector(`.message[data-id="${id}"] .message-text`).textContent.trim()
+    }</textarea>
+      <div id="save-message" class="button">
+        Save message<i class="fas fa-save"></i>
+      </div>
+    </div>
+  </div>
+`;
+  document.querySelector('header').insertAdjacentHTML('afterend', markup);
+
+  document.querySelector('#edit-message #close-popup').addEventListener('click', () => {
+    document.querySelector('#popup').remove()
+  });
+
+  document.querySelector('#save-message .fa-save').addEventListener('click', () => {
+    let newMessage = document.querySelector('#edit').value;
+    console.log(newMessage);
+    document.querySelector(`.message[data-id="${id}"] .message-text`).textContent = newMessage;
+    const iidd = document.querySelector('#edit-message').dataset.id;
+    modifyMessage(iidd, newMessage);
+  });
+}
+
+async function modifyMessage(id, newMessage) {
+  db.collection('messages').doc(id).update({
+    message: newMessage
+  });
+}
+
 function createMessage() {
   const message = document.querySelector('#message').value;
   const username = document.querySelector('#nickname').value;
@@ -64,7 +105,6 @@ function createMessage() {
   // az objectben akkor nem kell kétszer kiírni...
   return { message, username, date };
 }
-
 
 // async function displayAllMessages() {
 //   const query = await db.collection('messages').orderBy('date', 'asc').get();
@@ -106,7 +146,7 @@ db.collection('messages').orderBy('date', 'asc')
         displayMessage(change.doc.data(), change.doc.id);
       }
       if (change.type === 'modified') {
-        displayMessage(change.doc.data(), change.doc.id);
+        removeMessage(change.doc.id);
       }
       if (change.type === 'removed') {
         removeMessage(change.doc.id);
