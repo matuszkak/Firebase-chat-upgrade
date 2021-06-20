@@ -6,15 +6,18 @@ import 'firebase/firestore';
 import config from './db_config.js';
 import scrolIntoView from 'scroll-into-view-if-needed';
 
-
+// initialize DB
 const firedb = firebase.initializeApp(config);
 const db = firedb.firestore();
 
+// send message to DB
 async function sendMessage(data) {
   const res = await db.collection('messages').add(data);
   document.querySelector('#message').value = '';
 }
 
+// display message-sender-time on UI with button tools added
+// individual message id added to html
 function displayMessage(message, id) {
   const messageDOM = `
       <div class="message" data-id="${id}">
@@ -53,14 +56,20 @@ function displayMessage(message, id) {
   });
 }
 
+// remove message from screen
 function removeMessage(id) {
   document.querySelector(`[data-id="${id}"]`).remove();
 }
 
+// delete message from DB
 function deleteMessage(id) {
   db.collection("messages").doc(id).delete();
 }
 
+// edit selected message via popup
+// popup can be closed or changes can be saved via button-click
+// text will be amended in original message on screen
+// message will be deleted from DB
 function displayEditMessage(id) {
   const markup = /*html*/`
   <div class="popup-container" id="popup">
@@ -76,7 +85,7 @@ function displayEditMessage(id) {
     </div>
   </div>
 `;
-  document.querySelector('header').insertAdjacentHTML('afterend', markup);
+  document.querySelector('#app').insertAdjacentHTML('beforeend', markup);
 
   document.querySelector('#edit-message #close-popup').addEventListener('click', () => {
     document.querySelector('#popup').remove()
@@ -88,15 +97,19 @@ function displayEditMessage(id) {
     document.querySelector(`.message[data-id="${id}"] .message-text`).textContent = newMessage;
     const iidd = document.querySelector('#edit-message').dataset.id;
     modifyMessage(iidd, newMessage);
+    document.querySelector('#popup').remove()
   });
 }
 
+// modify message in DB
 async function modifyMessage(id, newMessage) {
   db.collection('messages').doc(id).update({
     message: newMessage
   });
 }
 
+// create message from bottom panel
+// sender, message and date stamp provided
 function createMessage() {
   const message = document.querySelector('#message').value;
   const username = document.querySelector('#nickname').value;
@@ -114,6 +127,8 @@ function createMessage() {
 //   });
 // }
 
+// message creation
+// send message to DB only if fields populated
 function handleMessage() {
   const message = createMessage();
   if (message.username && message.message) {
@@ -122,7 +137,8 @@ function handleMessage() {
   }
 }
 
-// amikor a html teljesen betölt: 
+// amikor a html teljesen betölt
+// upon click on send button - message to be created and send
 window.addEventListener('DOMContentLoaded', () => {
   // displayAllMessages(); 
   document.querySelector('#send').addEventListener('click', () => {
@@ -130,6 +146,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// // upon hitting Enter - message to be created and send
 document.addEventListener('keyup', (event) => {
   if (event.key === 'Enter') {
     handleMessage();
@@ -138,6 +155,8 @@ document.addEventListener('keyup', (event) => {
 
 
 // listen for changes in the database
+// in case of new record - display on screen
+// in case of removal - remove from screen
 db.collection('messages').orderBy('date', 'asc')
   .onSnapshot((snapshot) => {
 
@@ -145,9 +164,9 @@ db.collection('messages').orderBy('date', 'asc')
       if (change.type === 'added') {
         displayMessage(change.doc.data(), change.doc.id);
       }
-      if (change.type === 'modified') {
-        removeMessage(change.doc.id);
-      }
+      // if (change.type === 'modified') {
+      //   removeMessage(change.doc.id);
+      // }
       if (change.type === 'removed') {
         removeMessage(change.doc.id);
       }
